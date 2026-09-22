@@ -1,0 +1,6 @@
+{
+  "name": "VentureLens",
+  "description": "A production-grade Startup Operating System & Decision Intelligence Suite featuring rule-based NLP validation, CapTable modeling, BurnWatch cash runway, and PitchCraft deck export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

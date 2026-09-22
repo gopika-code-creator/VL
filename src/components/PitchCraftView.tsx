@@ -1,0 +1,305 @@
+import React, { useState } from 'react';
+import { VentureIdea, CapTableState, BurnEntry } from '../types';
+import {
+  FileSpreadsheet,
+  Download,
+  Printer,
+  Copy,
+  Check,
+  Layers,
+  FileText
+} from 'lucide-react';
+
+interface PitchCraftViewProps {
+  venture: VentureIdea;
+  capTable: CapTableState;
+  ledgerEntries: BurnEntry[];
+  startingCash: number;
+}
+
+export const PitchCraftView: React.FC<PitchCraftViewProps> = ({
+  venture,
+  capTable,
+  ledgerEntries,
+  startingCash
+}) => {
+  const [copied, setCopied] = useState(false);
+
+  const totalExpenses = ledgerEntries
+    .filter((e) => e.entryType === 'EXPENSE')
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const totalRevenue = ledgerEntries
+    .filter((e) => e.entryType === 'REVENUE')
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const netMonthlyBurn = totalExpenses - totalRevenue;
+  const runwayMonths =
+    netMonthlyBurn <= 0
+      ? Infinity
+      : Math.max(0, Math.round((startingCash / netMonthlyBurn) * 10) / 10);
+
+  const postMoney = capTable.preMoneyValuation + capTable.investmentAmount;
+  const investorPct =
+    postMoney > 0 ? (capTable.investmentAmount / postMoney) * 100 : 0;
+  const retentionFactor = postMoney > 0 ? capTable.preMoneyValuation / postMoney : 1;
+  const founder1Diluted = capTable.founder1InitialPct * retentionFactor;
+  const founder2Diluted = capTable.founder2InitialPct * retentionFactor;
+  const esopDiluted = capTable.esopInitialPct * retentionFactor;
+
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(val);
+
+  // Generate 10-slide outline
+  const slides = [
+    {
+      num: 1,
+      title: 'Title & Hook',
+      desc: 'High-concept vision and core elevator hook',
+      content: `${venture.startupName}: The Autonomous Intelligence & Decision Layer. Built for ${venture.targetCustomer}.`
+    },
+    {
+      num: 2,
+      title: 'The Problem Statement',
+      desc: 'Critical customer friction, legacy inefficiency, and pain points',
+      content: venture.problemStatement
+    },
+    {
+      num: 3,
+      title: 'The Solution & Defensibility',
+      desc: 'Proprietary technology, workflow automation, and core product moat',
+      content: venture.proposedSolution
+    },
+    {
+      num: 4,
+      title: 'Market Opportunity & ICP',
+      desc: 'Addressable market TAM/SAM, ideal customer profile, and monetization model',
+      content: `Target ICP: ${venture.targetCustomer}\nBusiness Model: ${venture.businessModel}\nNLP Market Validation Score: ${venture.marketScore}/100`
+    },
+    {
+      num: 5,
+      title: 'Strategic SWOT Matrix',
+      desc: 'Rigorous 4-box evaluation of internal competencies and external forces',
+      content: `Strengths: ${venture.strengths.join(' | ')}\nWeaknesses: ${venture.weaknesses.join(' | ')}\nOpportunities: ${venture.opportunities.join(' | ')}\nThreats: ${venture.threats.join(' | ')}`
+    },
+    {
+      num: 6,
+      title: 'Failure Risks & Mitigation',
+      desc: 'Lookbehind negation detection flags and defensive contingency plans',
+      content: venture.risks.join('\n')
+    },
+    {
+      num: 7,
+      title: 'CapTable & Equity Structure',
+      desc: 'Founder capitalization table, dilution modeling, and round terms',
+      content: `Pre-Money Valuation: ${formatCurrency(capTable.preMoneyValuation)}\nInvestment Amount: ${formatCurrency(capTable.investmentAmount)}\nPost-Money Valuation: ${formatCurrency(postMoney)}\nOwnership: Founder 1 (${founder1Diluted.toFixed(2)}%), Founder 2 (${founder2Diluted.toFixed(2)}%), ESOP (${esopDiluted.toFixed(2)}%), Investors (${investorPct.toFixed(2)}%)`
+    },
+    {
+      num: 8,
+      title: 'BurnWatch Financials & Runway',
+      desc: 'Monthly cash-depletion curve, net burn, and zero-cash horizon',
+      content: `Starting Balance: ${formatCurrency(startingCash)}\nNet Monthly Burn: ${formatCurrency(netMonthlyBurn)}\nSurvival Runway: ${runwayMonths === Infinity ? 'Positive' : `${runwayMonths} Months`}`
+    },
+    {
+      num: 9,
+      title: 'Roadmap & Critical Milestones',
+      desc: '12-month engineering and go-to-market progression',
+      content: `Q1: Production rollout with initial enterprise pilot cohorts.\nQ2: Outbound pipeline scaling and SOC2 Type II compliance.\nQ3-Q4: Expansion of recurring ARR to $75,000/mo.`
+    },
+    {
+      num: 10,
+      title: 'The Investment Ask',
+      desc: 'Capital requirement and clear allocation of proceeds',
+      content: `Seeking ${formatCurrency(capTable.investmentAmount)} in Seed equity financing to accelerate engineering team scaling (60%), go-to-market execution (30%), and operations (10%).`
+    }
+  ];
+
+  const generateMarkdown = () => {
+    return `# ${venture.startupName} — Executive Pitch Deck Blueprint
+**Decision Tier:** ${venture.decisionTier} (Score: ${venture.overallScore}/100)
+**Generated By:** VentureLens Desktop Operating System
+
+---
+
+${slides
+  .map(
+    (s) => `## Slide ${s.num}: ${s.title}
+*${s.desc}*
+
+${s.content}
+`
+  )
+  .join('\n---\n\n')}
+`;
+  };
+
+  const generateHtml = () => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${venture.startupName} — Pitch Deck Blueprint</title>
+  <style>
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .slide-page { page-break-after: always; border: 1px solid #ccc !important; }
+      .no-print { display: none !important; }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0B1320;
+      color: #F1F5F9;
+      margin: 0;
+      padding: 40px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { margin-bottom: 40px; border-bottom: 2px solid #273852; padding-bottom: 20px; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; background: #064E3B; color: #10B981; font-weight: bold; font-size: 13px; }
+    .slide-page {
+      background: #162235;
+      border: 1px solid #273852;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .slide-title { font-size: 18px; font-weight: bold; color: #10B981; margin: 0 0 4px 0; }
+    .slide-desc { font-size: 12px; color: #94A3B8; margin-bottom: 14px; }
+    .slide-content { font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #CBD5E1; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">${venture.decisionTier} &bull; ${venture.overallScore}/100</span>
+      <h1 style="font-size: 28px; margin: 12px 0 6px 0;">${venture.startupName}</h1>
+      <p style="color: #94A3B8; margin: 0;">VentureLens 10-Slide Startup Operating System Blueprint</p>
+    </div>
+    ${slides
+      .map(
+        (s) => `
+      <div class="slide-page">
+        <h3 class="slide-title">Slide ${s.num}: ${s.title}</h3>
+        <div class="slide-desc">${s.desc}</div>
+        <div class="slide-content">${s.content}</div>
+      </div>
+    `
+      )
+      .join('')}
+  </div>
+</body>
+</html>`;
+  };
+
+  const downloadFile = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(generateHtml());
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 300);
+    }
+  };
+
+  const handleCopyMarkdown = () => {
+    navigator.clipboard.writeText(generateMarkdown());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div id="pitchcraft-screen" className="space-y-6">
+      {/* Top Action Bar */}
+      <div className="bg-[#162235] border border-[#273852] rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-[#F1F5F9] flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-[#10B981]" />
+            <span>10-Slide Pitch Deck & Operating Blueprint</span>
+          </h3>
+          <p className="text-xs text-[#94A3B8] mt-1">
+            Consolidates NLP scores, SWOT, CapTable splits, and BurnWatch runway.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            id="btn-copy-markdown"
+            onClick={handleCopyMarkdown}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#CBD5E1] bg-[#1F2E47] hover:bg-[#2A3E5E] border border-[#273852] transition-colors cursor-pointer"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-[#10B981]" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copied ? 'Copied!' : 'Copy Markdown'}</span>
+          </button>
+
+          <button
+            id="btn-download-markdown"
+            onClick={() => downloadFile(generateMarkdown(), `${venture.startupName.toLowerCase().replace(/\s+/g, '-')}-deck.md`, 'text/markdown')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#1F2E47] hover:bg-[#273854] border border-[#273852] transition-colors cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-[#10B981]" />
+            <span>Download .MD</span>
+          </button>
+
+          <button
+            id="btn-download-html"
+            onClick={() => downloadFile(generateHtml(), `${venture.startupName.toLowerCase().replace(/\s+/g, '-')}-printable.html`, 'text/html')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#10B981] hover:bg-[#059669] transition-colors cursor-pointer shadow-xs"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download HTML</span>
+          </button>
+
+          <button
+            id="btn-print-pdf"
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#F1F5F9] bg-[#1E293B] hover:bg-[#334155] border border-[#475569] transition-colors cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print PDF (Ctrl+P)</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 10 Slides Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {slides.map((slide) => (
+          <div
+            key={slide.num}
+            className="bg-[#162235] border border-[#273852] rounded-xl p-5 flex flex-col justify-between space-y-3 hover:border-[#10B981]/50 transition-colors"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#10B981]/20 text-[#10B981]">
+                  Slide {slide.num}
+                </span>
+                <span className="text-[10px] text-[#64748B]">PitchCraft Deck</span>
+              </div>
+              <h4 className="text-sm font-bold text-[#F1F5F9]">{slide.title}</h4>
+              <p className="text-[11px] text-[#94A3B8] mb-2">{slide.desc}</p>
+              <div className="bg-[#0E1828] border border-[#273852] rounded-lg p-3 text-xs text-[#CBD5E1] whitespace-pre-wrap font-sans leading-relaxed">
+                {slide.content}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
